@@ -1,0 +1,6 @@
+rootProject.name = 'kotlin-delivery-service-platform'
+include 'api'
+include 'db'
+include 'store-admin'
+include 'common'
+
