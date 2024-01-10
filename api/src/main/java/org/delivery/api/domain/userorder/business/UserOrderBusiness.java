@@ -15,6 +15,7 @@ import org.delivery.api.domain.userorder.service.UserOrderService;
 import org.delivery.api.domain.userordermenu.converter.UserOrderMenuConverter;
 import org.delivery.api.domain.userordermenu.service.UserOrderMenuService;
 import org.delivery.common.annotation.Business;
+import org.delivery.db.userordermenu.enums.UserOrderMenuStatus;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -84,22 +85,23 @@ public class UserOrderBusiness {
         var userOrderEntityList = userOrderService.current(user.getId());
 
         // handle order by order
-        var userOrderDetailResponseList = userOrderEntityList.stream().map(it -> {
+        var userOrderDetailResponseList = userOrderEntityList.stream().map(userOrderEntity -> {
 
             // user ordered this menu
-            var userOrderMenuEntityList = userOrderMenuService.getUserOrderMenu(it.getId());
+            var userOrderMenuEntityList = userOrderEntity.getUserOrderMenuList().stream()
+                    .filter(it -> it.getStatus().equals(UserOrderMenuStatus.REGISTERED))
+                    .collect(Collectors.toList());
 
             var storeMenuEntityList = userOrderMenuEntityList.stream()
                     .map(userOrderMenuEntity -> {
-                        var storeMenuEntity = storeMenuService.getStoreMenuWithThrow(userOrderMenuEntity.getStoreMenu().getId());
-                        return storeMenuEntity;
+                        return userOrderMenuEntity.getStoreMenu();
                     }).collect(Collectors.toList());
 
-            // user ordered from this store TODO need to be refactored
-            var storeEntity = storeService.getStoreWithThrow(storeMenuEntityList.stream().findFirst().get().getStore().getId());
+            // user ordered from this store
+            var storeEntity = userOrderEntity.getStore();
 
             return UserOrderDetailResponse.builder()
-                    .userOrderResponse(userOrderConverter.toResponse(it))
+                    .userOrderResponse(userOrderConverter.toResponse(userOrderEntity))
                     .storeMenuResponseList(storeMenuConverter.toResponse(storeMenuEntityList))
                     .storeResponse(storeConverter.toResponse(storeEntity))
                     .build()
@@ -115,22 +117,22 @@ public class UserOrderBusiness {
         var userOrderEntityList = userOrderService.history(user.getId());
 
         // handle order by order
-        var userOrderDetailResponseList = userOrderEntityList.stream().map(it -> {
+        var userOrderDetailResponseList = userOrderEntityList.stream().map(userOrderEntity -> {
 
             // user ordered this menu
-            var userOrderMenuEntityList = userOrderMenuService.getUserOrderMenu(it.getId());
+            var userOrderMenuEntityList = userOrderEntity.getUserOrderMenuList().stream()
+                    .filter(it -> it.getStatus().equals(UserOrderMenuStatus.REGISTERED))
+                    .collect(Collectors.toList());
 
             var storeMenuEntityList = userOrderMenuEntityList.stream()
-                    .map(userOrderMenuEntity -> {
-                        var storeMenuEntity = storeMenuService.getStoreMenuWithThrow(userOrderMenuEntity.getStoreMenu().getId());
-                        return storeMenuEntity;
-                    }).collect(Collectors.toList());
+                    .map(userOrderMenuEntity -> userOrderMenuEntity.getStoreMenu())
+                    .collect(Collectors.toList());
 
-            // user ordered from this store TODO need to be refactored
-            var storeEntity = storeService.getStoreWithThrow(storeMenuEntityList.stream().findFirst().get().getStore().getId());
+            // user ordered from this store
+            var storeEntity = userOrderEntity.getStore();
 
             return UserOrderDetailResponse.builder()
-                    .userOrderResponse(userOrderConverter.toResponse(it))
+                    .userOrderResponse(userOrderConverter.toResponse(userOrderEntity))
                     .storeMenuResponseList(storeMenuConverter.toResponse(storeMenuEntityList))
                     .storeResponse(storeConverter.toResponse(storeEntity))
                     .build()
@@ -145,16 +147,16 @@ public class UserOrderBusiness {
 
         var userOrderEntity = userOrderService.getUserOrderWithoutStatusWithThrow(orderId, user.getId());
 
-        var userOrderMenuEntityList = userOrderMenuService.getUserOrderMenu(userOrderEntity.getId());
+        var userOrderMenuEntityList = userOrderEntity.getUserOrderMenuList().stream()
+                .filter(it -> it.getUserOrder().equals(UserOrderMenuStatus.REGISTERED))
+                .collect(Collectors.toList());
 
         var storeMenuEntityList = userOrderMenuEntityList.stream()
-                .map(userOrderMenuEntity -> {
-                    var storeMenuEntity = storeMenuService.getStoreMenuWithThrow(userOrderMenuEntity.getStoreMenu().getId());
-                    return storeMenuEntity;
-                }).collect(Collectors.toList());
+                .map(userOrderMenuEntity -> userOrderMenuEntity.getStoreMenu())
+                .collect(Collectors.toList());
 
-        // user ordered from this store TODO need to be refactored
-        var storeEntity = storeService.getStoreWithThrow(storeMenuEntityList.stream().findFirst().get().getStore().getId());
+        // user ordered from this store
+        var storeEntity = userOrderEntity.getStore();
 
         return UserOrderDetailResponse.builder()
                 .userOrderResponse(userOrderConverter.toResponse(userOrderEntity))
