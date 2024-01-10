@@ -2,6 +2,7 @@ package org.delivery.storeadmin.domain.userorder.business;
 
 import lombok.RequiredArgsConstructor;
 import org.delivery.common.message.model.UserOrderMessage;
+import org.delivery.db.userordermenu.enums.UserOrderMenuStatus;
 import org.delivery.storeadmin.domain.sse.connection.SseConnectionPool;
 import org.delivery.storeadmin.domain.storemenu.converter.StoreMenuConverter;
 import org.delivery.storeadmin.domain.storemenu.service.StoreMenuService;
@@ -42,12 +43,12 @@ public class UserOrderBusiness {
 
         // user order menu
         var userOrderMenuList = userOrderMenuService.getUserOrderMenuList(userOrderEntity.getId());
+        var userOrderMenuList2 = userOrderEntity.getUserOrderMenuList().stream()
+                .filter(it -> it.getUserOrder().equals(UserOrderMenuStatus.REGISTERED));
 
         // user order menu -> store menu
         var storeMenuResponseList = userOrderMenuList.stream()
-                .map(userOrderMenuEntity -> {
-                    return storeMenuService.getStoreMenuWithThrow(userOrderMenuEntity.getStoreMenuId());
-                })
+                .map(userOrderMenuEntity -> userOrderMenuEntity.getStoreMenu())
                 .map(storeMenuEntity -> {
                     return storeMenuConverter.toResponse(storeMenuEntity);
                 })
@@ -62,7 +63,7 @@ public class UserOrderBusiness {
                 .build()
                 ;
 
-        var userConnection = sseConnectionPool.getSession(userOrderEntity.getStoreId().toString());
+        var userConnection = sseConnectionPool.getSession(userOrderEntity.getStore().getId().toString());
 
         // push to user
         userConnection.sendMessage(push);
